@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d8dc transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #d4d8dc;
+  border-radius: 4px;
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-zinc-200/70 p-6;
+  }
+
+  .btn-primary {
+    @apply bg-brand-700 hover:bg-brand-800 text-white px-5 py-2.5 rounded-xl text-sm font-medium
+           transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed
+           active:scale-[0.98] shadow-sm shadow-brand-900/5;
+  }
+
+  .btn-secondary {
+    @apply bg-zinc-100 hover:bg-zinc-200 text-zinc-600 px-5 py-2.5 rounded-xl text-sm font-medium
+           transition-all duration-150 active:scale-[0.98];
+  }
+
+  .btn-danger {
+    @apply bg-rose-50 hover:bg-rose-100 text-rose-600 px-5 py-2.5 rounded-xl text-sm font-medium
+           transition-all duration-150 active:scale-[0.98];
+  }
+
+  .input-field {
+    @apply w-full border border-zinc-200 rounded-xl px-4 py-2.5 text-sm
+           bg-zinc-50/50 placeholder:text-zinc-400
+           focus:outline-none focus:ring-2 focus:ring-brand-300/50 focus:border-brand-400
+           focus:bg-white transition-all duration-150;
+  }
+
+  .stat-value {
+    @apply text-2xl font-semibold tracking-tight text-zinc-800;
+  }
+
+  .stat-label {
+    @apply text-xs font-medium text-zinc-400 uppercase tracking-wider;
+  }
+}
