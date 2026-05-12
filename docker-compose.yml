@@ -12,12 +12,11 @@ services:
     volumes:
       - ./server/data:/app/data
     environment:
-      - NODE_ENV=production
       - PORT=3001
       - JWT_SECRET=${JWT_SECRET:-slimming-ds-change-this-secret-in-production}
       - DB_PATH=/app/data/slimming.db
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3001/api/health')"]
       interval: 30s
       timeout: 10s
       retries: 3

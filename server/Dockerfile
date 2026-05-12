@@ -1,22 +1,16 @@
-FROM node:20-alpine
-
-RUN apk add --no-cache python3 make g++ linux-headers && \
-    npm install -g pnpm --registry=https://registry.npmmirror.com
+FROM python:3.12
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --prod --registry=https://registry.npmmirror.com && \
-    apk del python3 make g++
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-COPY src/ ./src/
+COPY app/ ./app/
 
 RUN mkdir -p /app/data
 
 EXPOSE 3001
 
-ENV NODE_ENV=production
-ENV PORT=3001
-ENV DB_PATH=/app/data/slimming.db
+ENV PYTHONUNBUFFERED=1
 
-CMD ["node", "src/index.js"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3001"]
