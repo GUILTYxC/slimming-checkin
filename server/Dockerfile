@@ -1,11 +1,13 @@
 FROM node:20-alpine
 
-RUN npm install -g pnpm --registry=https://registry.npmmirror.com
+RUN apk add --no-cache python3 make g++ linux-headers && \
+    npm install -g pnpm --registry=https://registry.npmmirror.com
 
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --prod --registry=https://registry.npmmirror.com
+RUN pnpm install --prod --registry=https://registry.npmmirror.com && \
+    apk del python3 make g++
 
 COPY src/ ./src/
 
