@@ -9,21 +9,41 @@ db.version(1).stores({
   weeklySummaries: '++id, periodId, weekNumber, [periodId+weekNumber]',
 })
 
+db.version(2).stores({
+  periods: '++id, startDate, updatedAt, syncedAt',
+  dailyActivities: '++id, periodId, updatedAt, syncedAt',
+  dayRecords: '++id, periodId, date, [periodId+date], updatedAt, syncedAt',
+  weeklySummaries: '++id, periodId, weekNumber, [periodId+weekNumber], updatedAt, syncedAt',
+}).upgrade(async (tx) => {
+  const now = new Date().toISOString()
+  await tx.table('periods').modify((p) => { p.updatedAt = p.createdAt || now; p.syncedAt = null })
+  await tx.table('dailyActivities').modify((a) => { a.updatedAt = now; a.syncedAt = null })
+  await tx.table('dayRecords').modify((r) => { r.updatedAt = now; r.syncedAt = null })
+  await tx.table('weeklySummaries').modify((s) => { s.updatedAt = s.createdAt || now; s.syncedAt = null })
+})
+
 export default db
 
 export function addPeriod(period) {
+  const now = new Date().toISOString()
   return db.periods.add({
     name: period.name,
     startDate: period.startDate,
     totalDays: period.totalDays,
     initialWeight: period.initialWeight,
     targetWeight: period.targetWeight,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
+    syncedAt: null,
   })
 }
 
 export function updatePeriod(id, updates) {
-  return db.periods.update(id, updates)
+  return db.periods.update(id, {
+    ...updates,
+    updatedAt: new Date().toISOString(),
+    syncedAt: null,
+  })
 }
 
 export function getPeriod(id) {
@@ -43,11 +63,14 @@ export function deletePeriod(id) {
   })
 }
 
-// Daily Activities
 export function addDailyActivity(activity) {
+  const now = new Date().toISOString()
   return db.dailyActivities.add({
     periodId: activity.periodId,
     name: activity.name,
+    createdAt: now,
+    updatedAt: now,
+    syncedAt: null,
   })
 }
 
@@ -60,16 +83,19 @@ export function deletePeriodActivities(periodId) {
 }
 
 export function updateDailyActivity(id, updates) {
-  return db.dailyActivities.update(id, updates)
+  return db.dailyActivities.update(id, {
+    ...updates,
+    updatedAt: new Date().toISOString(),
+    syncedAt: null,
+  })
 }
 
 export function deleteDailyActivity(id) {
   return db.dailyActivities.delete(id)
 }
 
-// Day Records
 export function saveDayRecord(record) {
-  const existing = db.dayRecords.where('[periodId+date]').equals([record.periodId, record.date])
+  const now = new Date().toISOString()
   return db.dayRecords.put({
     id: record.id,
     periodId: record.periodId,
@@ -78,6 +104,9 @@ export function saveDayRecord(record) {
     caloriesBurned: record.caloriesBurned ?? null,
     activities: record.activities || {},
     notes: record.notes || '',
+    createdAt: record.createdAt || now,
+    updatedAt: now,
+    syncedAt: null,
   })
 }
 
@@ -93,14 +122,16 @@ export function deleteDayRecord(id) {
   return db.dayRecords.delete(id)
 }
 
-// Weekly Summaries
 export function saveWeeklySummary(summary) {
+  const now = new Date().toISOString()
   if (summary.id) {
     return db.weeklySummaries.update(summary.id, {
       summary: summary.summary,
       weekNumber: summary.weekNumber,
       startDate: summary.startDate,
       endDate: summary.endDate,
+      updatedAt: now,
+      syncedAt: null,
     })
   }
   return db.weeklySummaries.put({
@@ -109,7 +140,9 @@ export function saveWeeklySummary(summary) {
     startDate: summary.startDate,
     endDate: summary.endDate,
     summary: summary.summary,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
+    syncedAt: null,
   })
 }
 

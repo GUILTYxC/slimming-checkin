@@ -1,10 +1,47 @@
+import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import syncService from '../services/sync'
 import TitleBar from './TitleBar'
 
 export default function Layout() {
   const location = useLocation()
   const match = location.pathname.match(/\/period\/(\d+)/)
   const periodId = match ? match[1] : null
+  const { user, logout } = useAuth()
+  const [syncState, setSyncState] = useState({ syncing: false, error: null, lastSync: null })
+
+  useEffect(() => {
+    const unsubscribe = syncService.onSyncStateChange(setSyncState)
+    syncService.startAutoSync()
+    return () => {
+      unsubscribe()
+      syncService.stopAutoSync()
+    }
+  }, [])
+
+  const handleLogout = () => {
+    syncService.stopAutoSync()
+    logout()
+  }
+
+  const handleManualSync = () => {
+    syncService.sync()
+  }
+
+  const formatSyncTime = (time) => {
+    if (!time) return '从未同步'
+    const d = new Date(time)
+    const now = new Date()
+    const diffMs = now - d
+    const diffMin = Math.floor(diffMs / 60000)
+
+    if (diffMin < 1) return '刚刚同步'
+    if (diffMin < 60) return `${diffMin}分钟前同步`
+    const diffHour = Math.floor(diffMin / 60)
+    if (diffHour < 24) return `${diffHour}小时前同步`
+    return d.toLocaleDateString('zh-CN') + ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  }
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-zinc-50">
@@ -122,8 +159,44 @@ export default function Layout() {
             )}
           </nav>
 
-          <div className="px-4 py-3 border-t border-zinc-50 flex-shrink-0">
-            <p className="text-[11px] text-zinc-400">v1.0</p>
+          <div className="px-4 py-3 border-t border-zinc-50 flex-shrink-0 space-y-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleManualSync}
+                disabled={syncState.syncing}
+                className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors"
+                title="手动同步"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  className={`flex-shrink-0 ${syncState.syncing ? 'animate-spin' : ''}`}
+                >
+                  <polyline points="23 4 23 10 17 10" />
+                  <polyline points="1 20 1 14 7 14" />
+                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+                <span>{syncState.syncing ? '同步中...' : '同步'}</span>
+              </button>
+              {syncState.error && (
+                <span className="text-[10px] text-rose-400 truncate" title={syncState.error}>失败</span>
+              )}
+            </div>
+            <p className="text-[10px] text-zinc-300 truncate">{formatSyncTime(syncState.lastSync)}</p>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-zinc-400 truncate">{user?.username}</span>
+              <button
+                onClick={handleLogout}
+                className="text-[11px] text-zinc-400 hover:text-rose-500 transition-colors flex-shrink-0"
+              >
+                退出
+              </button>
+            </div>
           </div>
         </aside>
         <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">

@@ -6,6 +6,7 @@ import {
   getEndDate, getWeekNumber, getWeekDateRange, getWeightDiffFromPrev,
   getWeightDiffFromStart, getWeeklyTargetLoss, getDaysInWeek,
 } from '../utils/calculations'
+import DayRecordModal from '../components/DayRecordModal'
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -26,6 +27,8 @@ export default function DailyEntry() {
   const [weight, setWeight] = useState('')
   const [calories, setCalories] = useState('')
   const [checked, setChecked] = useState({})
+  const [showModal, setShowModal] = useState(false)
+  const [modalDate, setModalDate] = useState(null)
 
   const totalWeeks = period ? Math.ceil(period.totalDays / 7) : 1
   const endDate = period ? getEndDate(period.startDate, period.totalDays) : ''
@@ -89,6 +92,23 @@ export default function DailyEntry() {
   const handleDateSelect = (date) => {
     if (date < period.startDate || date > endDate || date > today) return
     setSelectedDate(date)
+    setModalDate(date)
+    setShowModal(true)
+  }
+
+  const handleModalClose = () => {
+    setShowModal(false)
+    setModalDate(null)
+  }
+
+  const handleModalSave = async (data) => {
+    try {
+      await saveDayRecord(data)
+      setShowModal(false)
+      setModalDate(null)
+    } catch (err) {
+      alert('保存失败：' + err.message)
+    }
   }
 
   const handleSave = async () => {
@@ -265,6 +285,18 @@ export default function DailyEntry() {
             {saved && <span className="text-xs text-emerald-600 font-medium">✓ 已保存</span>}
           </div>
         </div>
+      )}
+
+      {showModal && modalDate && (
+        <DayRecordModal
+          date={modalDate}
+          record={recordsMap[modalDate] || null}
+          activities={activities}
+          period={period}
+          recordsMap={recordsMap}
+          onClose={handleModalClose}
+          onSave={handleModalSave}
+        />
       )}
     </div>
   )

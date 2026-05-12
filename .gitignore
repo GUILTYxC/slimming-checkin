@@ -66,3 +66,8 @@ src/**/*.css.map
 
 # pnpm
 pnpm-lock.yaml
+
+# Server
+server/node_modules/
+server/data/
+server/.env
