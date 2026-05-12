@@ -1,9 +1,11 @@
 FROM node:20-alpine
 
+RUN npm install -g pnpm --registry=https://registry.npmmirror.com
+
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install --production
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --prod --registry=https://registry.npmmirror.com
 
 COPY src/ ./src/
 
