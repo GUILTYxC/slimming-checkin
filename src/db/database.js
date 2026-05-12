@@ -16,10 +16,10 @@ db.version(2).stores({
   weeklySummaries: '++id, periodId, weekNumber, [periodId+weekNumber], updatedAt, syncedAt',
 }).upgrade(async (tx) => {
   const now = new Date().toISOString()
-  await tx.table('periods').modify((p) => { p.updatedAt = p.createdAt || now; p.syncedAt = null })
-  await tx.table('dailyActivities').modify((a) => { a.updatedAt = now; a.syncedAt = null })
-  await tx.table('dayRecords').modify((r) => { r.updatedAt = now; r.syncedAt = null })
-  await tx.table('weeklySummaries').modify((s) => { s.updatedAt = s.createdAt || now; s.syncedAt = null })
+  await tx.table('periods').toCollection().modify((p) => { p.updatedAt = p.createdAt || now; p.syncedAt = null })
+  await tx.table('dailyActivities').toCollection().modify((a) => { a.updatedAt = now; a.syncedAt = null })
+  await tx.table('dayRecords').toCollection().modify((r) => { r.updatedAt = now; r.syncedAt = null })
+  await tx.table('weeklySummaries').toCollection().modify((s) => { s.updatedAt = s.createdAt || now; s.syncedAt = null })
 })
 
 export default db
