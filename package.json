@@ -33,18 +33,7 @@
   },
   "build": {
     "appId": "com.slimming-ds.app",
-    "productName": "减重追踪",
-    "electronDownload": {
-      "mirror": "https://npmmirror.com/mirrors/electron/"
-    },
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "icon/**/*"
-    ],
+    "productName": "SlimmingCheckin",
     "win": {
       "target": [
         {

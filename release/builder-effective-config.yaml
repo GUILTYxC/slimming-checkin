@@ -1,0 +1,24 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.slimming-ds.app
+productName: 减重追踪
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+      - icon/**/*
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 减重追踪
+electronVersion: 31.7.7
