@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getPeriod, getPeriodActivities, getPeriodDayRecords } from '../db/database'
 import {
@@ -12,6 +12,7 @@ import WeekProgress from '../components/WeekProgress'
 
 export default function Dashboard() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const periodId = parseInt(id)
 
   const period = useLiveQuery(() => getPeriod(periodId), [periodId])
@@ -65,6 +66,16 @@ export default function Dashboard() {
         {isActive && (
           <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-medium">进行中</span>
         )}
+        <button
+          onClick={() => navigate(`/period/${period.id}/edit`)}
+          className="text-xs text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 px-2 py-1 rounded-lg transition-colors"
+          title="编辑计划"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
       </div>
       <p className="text-sm text-zinc-400 mb-6">
         {period.startDate} ~ {endDate} · {period.totalDays} 天 · {allWeeks.length} 周

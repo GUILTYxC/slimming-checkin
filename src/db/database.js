@@ -55,6 +55,10 @@ export function getPeriodActivities(periodId) {
   return db.dailyActivities.where('periodId').equals(periodId).toArray()
 }
 
+export function deletePeriodActivities(periodId) {
+  return db.dailyActivities.where('periodId').equals(periodId).delete()
+}
+
 export function updateDailyActivity(id, updates) {
   return db.dailyActivities.update(id, updates)
 }

@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { addPeriod, addDailyActivity, getAllPeriods } from '../db/database'
+import { addPeriod, updatePeriod, addDailyActivity, deletePeriodActivities, getAllPeriods, getPeriod, getPeriodActivities } from '../db/database'
 import { getEndDate, getTargetLoss, getWeeklyTargetLoss, getTotalWeeks } from '../utils/calculations'
 
 export default function PeriodForm() {
   const navigate = useNavigate()
+  const { id } = useParams()
+  const periodId = id ? parseInt(id) : null
+  const isEdit = periodId != null
+
   const periods = useLiveQuery(() => getAllPeriods(), []) || []
+  const existingPeriod = useLiveQuery(() => isEdit ? getPeriod(periodId) : null, [periodId])
+  const existingActivities = useLiveQuery(() => isEdit ? getPeriodActivities(periodId) : null, [periodId])
   const today = new Date().toISOString().split('T')[0]
 
   const [form, setForm] = useState({
@@ -16,14 +22,30 @@ export default function PeriodForm() {
   const [newActivity, setNewActivity] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
+    if (isEdit && existingPeriod && existingActivities && !loaded) {
+      setForm({
+        name: existingPeriod.name || '',
+        startDate: existingPeriod.startDate || today,
+        totalDays: existingPeriod.totalDays || 30,
+        initialWeight: existingPeriod.initialWeight != null ? String(existingPeriod.initialWeight) : '',
+        targetWeight: existingPeriod.targetWeight != null ? String(existingPeriod.targetWeight) : '',
+      })
+      setActivities(existingActivities.map((a) => a.name))
+      setLoaded(true)
+    }
+  }, [existingPeriod, existingActivities, isEdit, loaded, today])
+
+  useEffect(() => {
+    if (isEdit) return
     const hasActive = periods.some((p) => {
       const end = getEndDate(p.startDate, p.totalDays)
       return p.startDate <= today && today <= end
     })
     if (hasActive) setError('当前有进行中的减重期')
-  }, [periods, today])
+  }, [periods, today, isEdit])
 
   const targetLoss =
     form.initialWeight && form.targetWeight
@@ -44,15 +66,24 @@ export default function PeriodForm() {
 
     setSaving(true)
     try {
-      const periodId = await addPeriod({
+      const periodData = {
         name: form.name.trim(), startDate: form.startDate,
         totalDays: form.totalDays, initialWeight: parseFloat(form.initialWeight),
         targetWeight: parseFloat(form.targetWeight),
-      })
-      for (const activity of activities) {
-        await addDailyActivity({ periodId, name: activity.trim() })
       }
-      navigate(`/period/${periodId}`)
+
+      let targetId = periodId
+      if (isEdit) {
+        await updatePeriod(periodId, periodData)
+        await deletePeriodActivities(periodId)
+      } else {
+        targetId = await addPeriod(periodData)
+      }
+
+      for (const activity of activities) {
+        await addDailyActivity({ periodId: targetId, name: activity.trim() })
+      }
+      navigate(`/period/${targetId}`)
     } catch (err) {
       setError('保存失败：' + err.message)
       setSaving(false)
@@ -69,13 +100,13 @@ export default function PeriodForm() {
 
   return (
     <div className="max-w-xl">
-      <button onClick={() => navigate('/')} className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-600 mb-6 transition-colors">
+      <button onClick={() => isEdit ? navigate(`/period/${periodId}`) : navigate('/')} className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-600 mb-6 transition-colors">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         返回
       </button>
 
-      <h2 className="text-xl font-bold text-zinc-800 tracking-tight mb-2">创建减重计划</h2>
-      <p className="text-sm text-zinc-400 mb-8">设置你的目标和每日活动</p>
+      <h2 className="text-xl font-bold text-zinc-800 tracking-tight mb-2">{isEdit ? '编辑减重计划' : '创建减重计划'}</h2>
+      <p className="text-sm text-zinc-400 mb-8">{isEdit ? '修改你的目标和每日活动' : '设置你的目标和每日活动'}</p>
 
       {error && (
         <div className="bg-rose-50 border border-rose-100 text-rose-600 px-4 py-3 rounded-2xl mb-6 text-sm">
@@ -160,7 +191,7 @@ export default function PeriodForm() {
         </div>
 
         <button type="submit" disabled={saving} className="btn-primary w-full py-3 text-sm">
-          {saving ? '创建中...' : '创建减重计划'}
+          {saving ? '保存中...' : isEdit ? '保存修改' : '创建减重计划'}
         </button>
       </form>
     </div>

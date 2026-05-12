@@ -15,6 +15,7 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="period/new" element={<PeriodForm />} />
           <Route path="period/:id" element={<Dashboard />} />
+          <Route path="period/:id/edit" element={<PeriodForm />} />
           <Route path="period/:id/daily" element={<DailyEntry />} />
           <Route path="period/:id/weekly" element={<WeeklySummary />} />
           <Route path="period/:id/stats" element={<Statistics />} />
