@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import PORT, CORS_ORIGIN
 from .database import init_db
-from .routers import auth, sync
+from .routers import auth, sync, data
 
 app = FastAPI(title="减重追踪 - 后端服务", version="1.0.0")
 
@@ -17,6 +17,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(sync.router)
+app.include_router(data.router)
 
 
 @app.on_event("startup")

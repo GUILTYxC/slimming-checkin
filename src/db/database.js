@@ -1,4 +1,5 @@
 import Dexie from 'dexie'
+import api from '../services/api'
 
 const db = new Dexie('SlimmingDB')
 
@@ -32,9 +33,9 @@ db.version(3).stores({
 
 export default db
 
-export function addPeriod(period) {
+export async function addPeriod(period) {
   const now = new Date().toISOString()
-  return db.periods.add({
+  const id = await db.periods.add({
     name: period.name,
     startDate: period.startDate,
     totalDays: period.totalDays,
@@ -42,16 +43,38 @@ export function addPeriod(period) {
     targetWeight: period.targetWeight,
     createdAt: now,
     updatedAt: now,
-    syncedAt: null,
+    syncedAt: now,
   })
+
+  if (api.isLoggedIn()) {
+    try {
+      await api.createPeriod({
+        localId: id,
+        name: period.name,
+        startDate: period.startDate,
+        totalDays: period.totalDays,
+        initialWeight: period.initialWeight,
+        targetWeight: period.targetWeight,
+      })
+    } catch (err) {
+      console.error('Failed to sync period to server:', err)
+    }
+  }
+
+  return id
 }
 
-export function updatePeriod(id, updates) {
-  return db.periods.update(id, {
-    ...updates,
-    updatedAt: new Date().toISOString(),
-    syncedAt: null,
-  })
+export async function updatePeriod(id, updates) {
+  const now = new Date().toISOString()
+  await db.periods.update(id, { ...updates, updatedAt: now, syncedAt: now })
+
+  if (api.isLoggedIn()) {
+    try {
+      await api.updatePeriod(id, updates)
+    } catch (err) {
+      console.error('Failed to sync period update to server:', err)
+    }
+  }
 }
 
 export function getPeriod(id) {
@@ -63,72 +86,94 @@ export function getAllPeriods() {
 }
 
 export async function deletePeriod(id) {
-  const period = await db.periods.get(id)
-  if (period) {
-    await db.transaction('rw', db.periods, db.dailyActivities, db.dayRecords, db.weeklySummaries, db.deletedItems, async () => {
-      // 记录删除
-      await db.deletedItems.add({
-        itemType: 'period',
-        itemId: id,
-        periodLocalId: id,
-        deletedAt: new Date().toISOString(),
-        synced: 0,
-      })
-      // 删除关联数据（不单独记录，因为删除period会级联删除）
-      await db.dailyActivities.where('periodId').equals(id).delete()
-      await db.dayRecords.where('periodId').equals(id).delete()
-      await db.weeklySummaries.where('periodId').equals(id).delete()
-      await db.periods.delete(id)
-    })
+  await db.transaction('rw', db.periods, db.dailyActivities, db.dayRecords, db.weeklySummaries, async () => {
+    await db.dailyActivities.where('periodId').equals(id).delete()
+    await db.dayRecords.where('periodId').equals(id).delete()
+    await db.weeklySummaries.where('periodId').equals(id).delete()
+    await db.periods.delete(id)
+  })
+
+  if (api.isLoggedIn()) {
+    try {
+      await api.deletePeriod(id)
+    } catch (err) {
+      console.error('Failed to sync period deletion to server:', err)
+    }
   }
 }
 
-export function addDailyActivity(activity) {
+export async function addDailyActivity(activity) {
   const now = new Date().toISOString()
-  return db.dailyActivities.add({
+  const id = await db.dailyActivities.add({
     periodId: activity.periodId,
     name: activity.name,
     createdAt: now,
     updatedAt: now,
-    syncedAt: null,
+    syncedAt: now,
   })
+
+  if (api.isLoggedIn()) {
+    try {
+      await api.createActivity({
+        periodLocalId: activity.periodId,
+        localId: id,
+        name: activity.name,
+      })
+    } catch (err) {
+      console.error('Failed to sync activity to server:', err)
+    }
+  }
+
+  return id
 }
 
 export function getPeriodActivities(periodId) {
   return db.dailyActivities.where('periodId').equals(periodId).toArray()
 }
 
-export function deletePeriodActivities(periodId) {
-  return db.dailyActivities.where('periodId').equals(periodId).delete()
-}
+export async function deletePeriodActivities(periodId) {
+  const activities = await db.dailyActivities.where('periodId').equals(periodId).toArray()
+  await db.dailyActivities.where('periodId').equals(periodId).delete()
 
-export function updateDailyActivity(id, updates) {
-  return db.dailyActivities.update(id, {
-    ...updates,
-    updatedAt: new Date().toISOString(),
-    syncedAt: null,
-  })
-}
-
-export async function deleteDailyActivity(id) {
-  const activity = await db.dailyActivities.get(id)
-  if (activity) {
-    await db.transaction('rw', db.dailyActivities, db.deletedItems, async () => {
-      await db.deletedItems.add({
-        itemType: 'activity',
-        itemId: id,
-        periodLocalId: activity.periodId,
-        deletedAt: new Date().toISOString(),
-        synced: 0,
-      })
-      await db.dailyActivities.delete(id)
-    })
+  if (api.isLoggedIn()) {
+    for (const a of activities) {
+      try {
+        await api.deleteActivity(a.id)
+      } catch (err) {
+        console.error('Failed to sync activity deletion to server:', err)
+      }
+    }
   }
 }
 
-export function saveDayRecord(record) {
+export async function updateDailyActivity(id, updates) {
   const now = new Date().toISOString()
-  return db.dayRecords.put({
+  await db.dailyActivities.update(id, { ...updates, updatedAt: now, syncedAt: now })
+
+  if (api.isLoggedIn()) {
+    try {
+      await api.updateActivity(id, updates)
+    } catch (err) {
+      console.error('Failed to sync activity update to server:', err)
+    }
+  }
+}
+
+export async function deleteDailyActivity(id) {
+  await db.dailyActivities.delete(id)
+
+  if (api.isLoggedIn()) {
+    try {
+      await api.deleteActivity(id)
+    } catch (err) {
+      console.error('Failed to sync activity deletion to server:', err)
+    }
+  }
+}
+
+export async function saveDayRecord(record) {
+  const now = new Date().toISOString()
+  const id = await db.dayRecords.put({
     id: record.id,
     periodId: record.periodId,
     date: record.date,
@@ -138,8 +183,26 @@ export function saveDayRecord(record) {
     notes: record.notes || '',
     createdAt: record.createdAt || now,
     updatedAt: now,
-    syncedAt: null,
+    syncedAt: now,
   })
+
+  if (api.isLoggedIn()) {
+    try {
+      await api.saveRecord({
+        periodLocalId: record.periodId,
+        localId: id,
+        date: record.date,
+        weight: record.weight,
+        caloriesBurned: record.caloriesBurned,
+        activities: record.activities,
+        notes: record.notes,
+      })
+    } catch (err) {
+      console.error('Failed to sync record to server:', err)
+    }
+  }
+
+  return id
 }
 
 export function getDayRecord(periodId, date) {
@@ -151,43 +214,57 @@ export function getPeriodDayRecords(periodId) {
 }
 
 export async function deleteDayRecord(id) {
-  const record = await db.dayRecords.get(id)
-  if (record) {
-    await db.transaction('rw', db.dayRecords, db.deletedItems, async () => {
-      await db.deletedItems.add({
-        itemType: 'record',
-        itemId: id,
-        periodLocalId: record.periodId,
-        deletedAt: new Date().toISOString(),
-        synced: 0,
-      })
-      await db.dayRecords.delete(id)
-    })
+  await db.dayRecords.delete(id)
+
+  if (api.isLoggedIn()) {
+    try {
+      await api.deleteRecord(id)
+    } catch (err) {
+      console.error('Failed to sync record deletion to server:', err)
+    }
   }
 }
 
-export function saveWeeklySummary(summary) {
+export async function saveWeeklySummary(summary) {
   const now = new Date().toISOString()
   if (summary.id) {
-    return db.weeklySummaries.update(summary.id, {
+    await db.weeklySummaries.update(summary.id, {
       summary: summary.summary,
       weekNumber: summary.weekNumber,
       startDate: summary.startDate,
       endDate: summary.endDate,
       updatedAt: now,
-      syncedAt: null,
+      syncedAt: now,
+    })
+  } else {
+    summary.id = await db.weeklySummaries.put({
+      periodId: summary.periodId,
+      weekNumber: summary.weekNumber,
+      startDate: summary.startDate,
+      endDate: summary.endDate,
+      summary: summary.summary,
+      createdAt: now,
+      updatedAt: now,
+      syncedAt: now,
     })
   }
-  return db.weeklySummaries.put({
-    periodId: summary.periodId,
-    weekNumber: summary.weekNumber,
-    startDate: summary.startDate,
-    endDate: summary.endDate,
-    summary: summary.summary,
-    createdAt: now,
-    updatedAt: now,
-    syncedAt: null,
-  })
+
+  if (api.isLoggedIn()) {
+    try {
+      await api.saveSummary({
+        periodLocalId: summary.periodId,
+        localId: summary.id,
+        weekNumber: summary.weekNumber,
+        startDate: summary.startDate,
+        endDate: summary.endDate,
+        summary: summary.summary,
+      })
+    } catch (err) {
+      console.error('Failed to sync summary to server:', err)
+    }
+  }
+
+  return summary.id
 }
 
 export function getWeeklySummary(periodId, weekNumber) {

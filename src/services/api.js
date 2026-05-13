@@ -109,6 +109,76 @@ class ApiClient {
     return this.request('/health')
   }
 
+  // Period APIs
+  async createPeriod(data) {
+    return this.request('/data/periods', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updatePeriod(localId, data) {
+    return this.request(`/data/periods/${localId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deletePeriod(localId) {
+    return this.request(`/data/periods/${localId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Activity APIs
+  async createActivity(data) {
+    return this.request('/data/activities', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateActivity(localId, data) {
+    return this.request(`/data/activities/${localId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteActivity(localId) {
+    return this.request(`/data/activities/${localId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Record APIs
+  async saveRecord(data) {
+    return this.request('/data/records', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteRecord(localId) {
+    return this.request(`/data/records/${localId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Summary APIs
+  async saveSummary(data) {
+    return this.request('/data/summaries', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteSummary(localId) {
+    return this.request(`/data/summaries/${localId}`, {
+      method: 'DELETE',
+    })
+  }
+
   logout() {
     this.setToken(null)
     localStorage.removeItem('last_sync_time')
