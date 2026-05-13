@@ -2,14 +2,7 @@ directories:
   output: release
   buildResources: build
 appId: com.slimming-ds.app
-productName: 减重追踪
-electronDownload:
-  mirror: https://npmmirror.com/mirrors/electron/
-files:
-  - filter:
-      - dist/**/*
-      - electron/**/*
-      - icon/**/*
+productName: SlimmingCheckin
 win:
   target:
     - target: nsis
@@ -21,4 +14,6 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: 减重追踪
+npmRebuild: false
+files: []
 electronVersion: 31.7.7

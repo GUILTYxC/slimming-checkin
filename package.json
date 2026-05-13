@@ -34,20 +34,32 @@
   "build": {
     "appId": "com.slimming-ds.app",
     "productName": "SlimmingCheckin",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "icon/**/*"
+    ],
     "win": {
       "target": [
         {
           "target": "nsis",
           "arch": ["x64"]
         }
-      ]
+      ],
+      "icon": "icon/icon.ico"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "减重追踪"
-    }
+      "shortcutName": "减重追踪",
+      "installerIcon": "icon/icon.ico",
+      "uninstallerIcon": "icon/icon.ico"
+    },
+    "npmRebuild": false
   }
 }
