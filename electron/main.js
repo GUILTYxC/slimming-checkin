@@ -21,6 +21,17 @@ function createWindow() {
     },
   })
 
+  // 添加开发者工具快捷键支持
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+          window.electronAPI.toggleDevTools();
+        }
+      });
+    `);
+  });
+
   ipcMain.on('window-minimize', () => mainWindow.minimize())
   ipcMain.on('window-maximize', () => {
     if (mainWindow.isMaximized()) {
@@ -30,6 +41,14 @@ function createWindow() {
     }
   })
   ipcMain.on('window-close', () => mainWindow.close())
+  
+  ipcMain.on('toggle-dev-tools', () => {
+    if (mainWindow.webContents.isDevToolsOpened()) {
+      mainWindow.webContents.closeDevTools()
+    } else {
+      mainWindow.webContents.openDevTools()
+    }
+  })
 
   mainWindow.on('maximize', () => {
     mainWindow.webContents.send('window-maximized', true)

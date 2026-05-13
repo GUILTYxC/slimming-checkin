@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import DebugPanel from '../components/DebugPanel'
 
 export default function Login() {
   const { login, register } = useAuth()
@@ -9,6 +10,7 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showDebug, setShowDebug] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -126,10 +128,21 @@ export default function Login() {
           </div>
         </div>
 
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => setShowDebug(true)}
+            className="text-xs text-zinc-400 hover:text-zinc-600 underline"
+          >
+            遇到连接问题？点击这里调试
+          </button>
+        </div>
+
         <p className="text-center text-[11px] text-zinc-400 mt-6">
           数据将自动同步到云端，离线时可正常使用
         </p>
       </div>
+
+      <DebugPanel isOpen={showDebug} onClose={() => setShowDebug(false)} />
     </div>
   )
 }

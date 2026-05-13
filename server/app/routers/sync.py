@@ -183,7 +183,7 @@ def sync_push(
                 existing.total_days = p.totalDays
                 existing.initial_weight = p.initialWeight
                 existing.target_weight = p.targetWeight
-                existing.updated_at = parse_datetime(p.updated_at) or datetime.utcnow()
+                existing.updated_at = parse_datetime(p.updatedAt) or datetime.utcnow()
             else:
                 period = Period(
                     user_id=user_id,
@@ -226,7 +226,7 @@ def sync_push(
             )
             if existing:
                 existing.name = a.name
-                existing.updated_at = parse_datetime(a.updated_at) or datetime.utcnow()
+                existing.updated_at = parse_datetime(a.updatedAt) or datetime.utcnow()
             else:
                 activity = DailyActivity(
                     user_id=user_id,

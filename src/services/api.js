@@ -21,6 +21,8 @@ class ApiClient {
 
   async request(path, options = {}) {
     const url = `${this.baseUrl}${path}`
+    console.log(`[API] 请求: ${options.method || 'GET'} ${url}`)
+    
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -30,36 +32,61 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    })
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      })
 
-    const data = await response.json()
+      console.log(`[API] 响应状态: ${response.status} ${response.statusText}`)
+      
+      const data = await response.json()
+      console.log(`[API] 响应数据:`, data)
 
-    if (!response.ok) {
-      throw new Error(data.error || `请求失败 (${response.status})`)
+      if (!response.ok) {
+        throw new Error(data.error || `请求失败 (${response.status})`)
+      }
+
+      return data
+    } catch (error) {
+      console.error(`[API] 请求失败:`, error)
+      console.error(`[API] URL: ${url}`)
+      console.error(`[API] 错误类型:`, error.name)
+      console.error(`[API] 错误信息:`, error.message)
+      throw error
     }
-
-    return data
   }
 
   async register(username, password) {
-    const data = await this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    })
-    this.setToken(data.token)
-    return data
+    console.log(`[API] 尝试注册用户: ${username}`)
+    try {
+      const data = await this.request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      })
+      console.log(`[API] 注册成功:`, data)
+      this.setToken(data.token)
+      return data
+    } catch (error) {
+      console.error(`[API] 注册失败:`, error)
+      throw error
+    }
   }
 
   async login(username, password) {
-    const data = await this.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-    })
-    this.setToken(data.token)
-    return data
+    console.log(`[API] 尝试登录用户: ${username}`)
+    try {
+      const data = await this.request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      })
+      console.log(`[API] 登录成功:`, data)
+      this.setToken(data.token)
+      return data
+    } catch (error) {
+      console.error(`[API] 登录失败:`, error)
+      throw error
+    }
   }
 
   async getMe() {
