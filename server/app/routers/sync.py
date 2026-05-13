@@ -58,6 +58,9 @@ class SyncPushRequest(BaseModel):
     records: Optional[List[RecordData]] = []
     summaries: Optional[List[SummaryData]] = []
     deletedPeriods: Optional[List[int]] = []
+    deletedActivities: Optional[List[int]] = []
+    deletedRecords: Optional[List[int]] = []
+    deletedSummaries: Optional[List[int]] = []
 
 
 def format_period(p: Period) -> dict:
@@ -324,7 +327,38 @@ def sync_push(
                 .first()
             )
             if server_period:
+                # 删除关联数据
+                db.query(DailyActivity).filter(DailyActivity.period_id == server_period.id).delete()
+                db.query(DayRecord).filter(DayRecord.period_id == server_period.id).delete()
+                db.query(WeeklySummary).filter(WeeklySummary.period_id == server_period.id).delete()
                 db.delete(server_period)
+
+        for local_id in req.deletedActivities:
+            activity = (
+                db.query(DailyActivity)
+                .filter(and_(DailyActivity.user_id == user_id, DailyActivity.local_id == local_id))
+                .first()
+            )
+            if activity:
+                db.delete(activity)
+
+        for local_id in req.deletedRecords:
+            record = (
+                db.query(DayRecord)
+                .filter(and_(DayRecord.user_id == user_id, DayRecord.local_id == local_id))
+                .first()
+            )
+            if record:
+                db.delete(record)
+
+        for local_id in req.deletedSummaries:
+            summary = (
+                db.query(WeeklySummary)
+                .filter(and_(WeeklySummary.user_id == user_id, WeeklySummary.local_id == local_id))
+                .first()
+            )
+            if summary:
+                db.delete(summary)
 
         db.commit()
 

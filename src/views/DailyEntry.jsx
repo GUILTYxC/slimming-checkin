@@ -21,6 +21,7 @@ export default function DailyEntry() {
 
   const [currentWeek, setCurrentWeek] = useState(1)
   const [selectedDate, setSelectedDate] = useState(null)
+  const [isEditing, setIsEditing] = useState(false)
   const [initialized, setInitialized] = useState(false)
   const [saved, setSaved] = useState(false)
   const [weight, setWeight] = useState('')
@@ -36,6 +37,7 @@ export default function DailyEntry() {
       setCurrentWeek(week)
       if (today >= period.startDate && today <= getEndDate(period.startDate, period.totalDays)) {
         setSelectedDate(today)
+        setIsEditing(true)
       }
       setInitialized(true)
     }
@@ -88,6 +90,7 @@ export default function DailyEntry() {
   const handleDateSelect = (date) => {
     if (date < period.startDate || date > endDate || date > today) return
     setSelectedDate(date)
+    setIsEditing(date === today)
   }
 
   const handleSave = async () => {
@@ -197,22 +200,42 @@ export default function DailyEntry() {
                 <span className="text-[10px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full font-medium">今天</span>
               )}
             </div>
-            {hasCurrentData && (
-              <span className="text-[10px] text-emerald-600 font-medium">✓ 已打卡</span>
-            )}
+            <div className="flex items-center gap-2">
+              {hasCurrentData && (
+                <span className="text-[10px] text-emerald-600 font-medium">✓ 已打卡</span>
+              )}
+              {!isEditing && selectedDate !== today && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="btn-secondary text-xs py-1.5 px-3"
+                >
+                  编辑
+                </button>
+              )}
+              {isEditing && selectedDate !== today && (
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="btn-secondary text-xs py-1.5 px-3"
+                >
+                  取消
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="stat-label mb-1.5">今日体重 (kg)</label>
+                <label className="stat-label mb-1.5">体重 (kg)</label>
                 <input type="number" className="input-field" step="0.1" placeholder="75.3"
-                  value={weight} onChange={(e) => setWeight(e.target.value)} />
+                  value={weight} onChange={(e) => setWeight(e.target.value)}
+                  disabled={!isEditing} />
               </div>
               <div>
                 <label className="stat-label mb-1.5">运动消耗 (kcal)</label>
                 <input type="number" className="input-field" step="10" placeholder="350"
-                  value={calories} onChange={(e) => setCalories(e.target.value)} />
+                  value={calories} onChange={(e) => setCalories(e.target.value)}
+                  disabled={!isEditing} />
               </div>
             </div>
 
@@ -222,16 +245,23 @@ export default function DailyEntry() {
                 <div className="space-y-1.5">
                   {activities.map((a) => (
                     <label key={a.id}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-150 ${
-                        checked[a.id]
-                          ? 'bg-emerald-50 border border-emerald-100'
-                          : 'bg-zinc-50 hover:bg-zinc-100 border border-zinc-100'
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150 ${
+                        !isEditing
+                          ? 'bg-zinc-50 border border-zinc-100'
+                          : checked[a.id]
+                          ? 'bg-emerald-50 border border-emerald-100 cursor-pointer'
+                          : 'bg-zinc-50 hover:bg-zinc-100 border border-zinc-100 cursor-pointer'
                       }`}
                     >
                       <input type="checkbox" checked={!!checked[a.id]}
                         onChange={(e) => setChecked({ ...checked, [a.id]: e.target.checked })}
+                        disabled={!isEditing}
                         className="w-4 h-4 rounded accent-brand-600" />
-                      <span className={`text-sm ${checked[a.id] ? 'text-emerald-700' : 'text-zinc-500'}`}>
+                      <span className={`text-sm ${
+                        !isEditing
+                          ? 'text-zinc-500'
+                          : checked[a.id] ? 'text-emerald-700' : 'text-zinc-500'
+                      }`}>
                         {a.name}
                       </span>
                       {checked[a.id] && <span className="text-emerald-500 text-xs ml-auto">✓</span>}
@@ -273,10 +303,12 @@ export default function DailyEntry() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-zinc-100 flex-shrink-0">
-            <button onClick={handleSave} className="btn-primary">保存</button>
-            {saved && <span className="text-xs text-emerald-600 font-medium">✓ 已保存</span>}
-          </div>
+          {isEditing && (
+            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-zinc-100 flex-shrink-0">
+              <button onClick={handleSave} className="btn-primary">保存</button>
+              {saved && <span className="text-xs text-emerald-600 font-medium">✓ 已保存</span>}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -22,6 +22,14 @@ db.version(2).stores({
   await tx.table('weeklySummaries').toCollection().modify((s) => { s.updatedAt = s.createdAt || now; s.syncedAt = null })
 })
 
+db.version(3).stores({
+  periods: '++id, startDate, updatedAt, syncedAt',
+  dailyActivities: '++id, periodId, updatedAt, syncedAt',
+  dayRecords: '++id, periodId, date, [periodId+date], updatedAt, syncedAt',
+  weeklySummaries: '++id, periodId, weekNumber, [periodId+weekNumber], updatedAt, syncedAt',
+  deletedItems: '++id, itemType, itemId, periodLocalId, deletedAt, synced',
+})
+
 export default db
 
 export function addPeriod(period) {
@@ -54,13 +62,25 @@ export function getAllPeriods() {
   return db.periods.orderBy('startDate').toArray()
 }
 
-export function deletePeriod(id) {
-  return db.transaction('rw', db.periods, db.dailyActivities, db.dayRecords, db.weeklySummaries, async () => {
-    await db.dailyActivities.where('periodId').equals(id).delete()
-    await db.dayRecords.where('periodId').equals(id).delete()
-    await db.weeklySummaries.where('periodId').equals(id).delete()
-    await db.periods.delete(id)
-  })
+export async function deletePeriod(id) {
+  const period = await db.periods.get(id)
+  if (period) {
+    await db.transaction('rw', db.periods, db.dailyActivities, db.dayRecords, db.weeklySummaries, db.deletedItems, async () => {
+      // 记录删除
+      await db.deletedItems.add({
+        itemType: 'period',
+        itemId: id,
+        periodLocalId: id,
+        deletedAt: new Date().toISOString(),
+        synced: 0,
+      })
+      // 删除关联数据（不单独记录，因为删除period会级联删除）
+      await db.dailyActivities.where('periodId').equals(id).delete()
+      await db.dayRecords.where('periodId').equals(id).delete()
+      await db.weeklySummaries.where('periodId').equals(id).delete()
+      await db.periods.delete(id)
+    })
+  }
 }
 
 export function addDailyActivity(activity) {
@@ -90,8 +110,20 @@ export function updateDailyActivity(id, updates) {
   })
 }
 
-export function deleteDailyActivity(id) {
-  return db.dailyActivities.delete(id)
+export async function deleteDailyActivity(id) {
+  const activity = await db.dailyActivities.get(id)
+  if (activity) {
+    await db.transaction('rw', db.dailyActivities, db.deletedItems, async () => {
+      await db.deletedItems.add({
+        itemType: 'activity',
+        itemId: id,
+        periodLocalId: activity.periodId,
+        deletedAt: new Date().toISOString(),
+        synced: 0,
+      })
+      await db.dailyActivities.delete(id)
+    })
+  }
 }
 
 export function saveDayRecord(record) {
@@ -118,8 +150,20 @@ export function getPeriodDayRecords(periodId) {
   return db.dayRecords.where('periodId').equals(periodId).toArray()
 }
 
-export function deleteDayRecord(id) {
-  return db.dayRecords.delete(id)
+export async function deleteDayRecord(id) {
+  const record = await db.dayRecords.get(id)
+  if (record) {
+    await db.transaction('rw', db.dayRecords, db.deletedItems, async () => {
+      await db.deletedItems.add({
+        itemType: 'record',
+        itemId: id,
+        periodLocalId: record.periodId,
+        deletedAt: new Date().toISOString(),
+        synced: 0,
+      })
+      await db.dayRecords.delete(id)
+    })
+  }
 }
 
 export function saveWeeklySummary(summary) {

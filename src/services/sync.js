@@ -154,16 +154,43 @@ class SyncService {
       .filter((s) => !s.syncedAt || s.updatedAt > s.syncedAt)
       .toArray()
 
+    const unsyncedDeletions = await db.deletedItems
+      .filter((d) => !d.synced)
+      .toArray()
+
     if (
       unsyncedPeriods.length === 0 &&
       unsyncedActivities.length === 0 &&
       unsyncedRecords.length === 0 &&
-      unsyncedSummaries.length === 0
+      unsyncedSummaries.length === 0 &&
+      unsyncedDeletions.length === 0
     ) {
       return
     }
 
     const periodIdMap = {}
+    const deletedActivities = []
+    const deletedRecords = []
+    const deletedSummaries = []
+    const deletedPeriods = []
+
+    for (const d of unsyncedDeletions) {
+      switch (d.itemType) {
+        case 'period':
+          deletedPeriods.push(d.itemId)
+          break
+        case 'activity':
+          deletedActivities.push(d.itemId)
+          break
+        case 'record':
+          deletedRecords.push(d.itemId)
+          break
+        case 'summary':
+          deletedSummaries.push(d.itemId)
+          break
+      }
+    }
+
     const payload = {
       periods: unsyncedPeriods.map((p) => {
         periodIdMap[p.id] = p.id
@@ -206,7 +233,10 @@ class SyncService {
         createdAt: s.createdAt || new Date().toISOString(),
         updatedAt: s.updatedAt || new Date().toISOString(),
       })),
-      deletedPeriods: [],
+      deletedPeriods,
+      deletedActivities,
+      deletedRecords,
+      deletedSummaries,
     }
 
     await api.pushData(payload)
@@ -223,6 +253,9 @@ class SyncService {
     }
     for (const s of unsyncedSummaries) {
       await db.weeklySummaries.update(s.id, { syncedAt: now })
+    }
+    for (const d of unsyncedDeletions) {
+      await db.deletedItems.update(d.id, { synced: 1 })
     }
   }
 
